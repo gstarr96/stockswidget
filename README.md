@@ -79,6 +79,7 @@ openai_model = gpt-5-mini
 anthropic_api_key =
 anthropic_model = claude-haiku-4-5
 summary_refresh_minutes = 120
+schedule = close
 ```
 
 Save the file, then right-click the widget and choose **Refresh now**.
@@ -90,7 +91,8 @@ Save the file, then right-click the widget and choose **Refresh now**.
 | `[ai] provider`                | `openai`           | `openai` or `anthropic`.                                         |
 | `[ai] openai_model`            | `gpt-5-mini`       | Any OpenAI model that supports the web search tool.              |
 | `[ai] anthropic_model`         | `claude-haiku-4-5` | Any Claude model that supports the web search tool.              |
-| `[ai] summary_refresh_minutes` | `120`              | While the market is open, the minimum minutes before a stock is researched again. |
+| `[ai] schedule`                | `close`            | `close` researches once after the US market closes. `interval` re-researches during the session. |
+| `[ai] summary_refresh_minutes` | `120`              | Minutes between research runs while the market is open. Used only when `schedule` is `interval`. |
 | `[charts] interval`            | `5m`               | Chart resolution: `1m`, `2m`, `5m`, `15m` or `30m`.              |
 
 A blank key falls back to the `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` environment
@@ -141,7 +143,7 @@ flowchart LR
   results. With the defaults (5 stocks, a small model, re-research every 2 hours
   during market hours), expect a few dozen searches on a trading day. That is
   usually well under a dollar, but check your provider's current pricing. To spend
-  less, lower `count` or raise `summary_refresh_minutes`.
+  less, lower `count`. With `schedule = interval`, raise `summary_refresh_minutes`.
 
 ## Troubleshooting
 

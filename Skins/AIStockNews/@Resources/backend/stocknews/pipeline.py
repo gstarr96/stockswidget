@@ -23,6 +23,8 @@ from .output import (
 )
 from .research import Story, research_story
 
+PENDING_SUMMARY = "The explanation is written once, after the US market closes."
+
 log = logging.getLogger(__name__)
 
 INDICES = (("^GSPC", "S&P 500"), ("^DJI", "Dow Jones"), ("^IXIC", "Nasdaq"))
@@ -60,12 +62,12 @@ class CachedStory:
     model: str
 
     def is_fresh(self, settings: Settings, series: PriceSeries, now: datetime) -> bool:
-        """Valid for the whole session once the market closes; time-limited while it's open."""
+        """One explanation per session, or a time limit while the market is open."""
         if (self.provider, self.model) != (settings.ai_provider, settings.ai_model):
             return False
         if self.session_date != series.session_date:
             return False
-        if not series.is_market_open(now):
+        if settings.schedule == "close" or not series.is_market_open(now):
             return True
         return now - self.researched_at < timedelta(minutes=settings.summary_refresh_minutes)
 
@@ -155,9 +157,7 @@ def run(
     to_research = [
         s
         for s in all_series
-        if force_summaries
-        or s.symbol not in cache
-        or not cache[s.symbol].is_fresh(settings, s, now)
+        if _should_research(settings, cache.get(s.symbol), s, now, force=force_summaries)
     ]
     researched, failures = _research_all(services.ai, to_research)
     for series in to_research:
@@ -173,9 +173,9 @@ def run(
         save_cache(paths.summary_cache, cache, now)
 
     stories = [
-        story_to_dict(cache[s.symbol].story, s, max_points=STORY_CHART_POINTS)
-        for s in all_series
-        if s.symbol in cache
+        item
+        for item in (_story_for(settings, cache.get(s.symbol), s, now) for s in all_series)
+        if item
     ]
     if failures and not stories:
         raise next(iter(failures.values()))
@@ -186,6 +186,9 @@ def run(
         first_error = next(iter(failures.values()))
         status, status_text = "warning", f"{updated} (some research failed)"
         message = f"Could not research {failed}: {first_error}"
+    elif any(story["summary"] == PENDING_SUMMARY for story in stories):
+        status, status_text = "ok", updated
+        message = "Explanations are written once, after the US market closes."
     elif not stories:
         status, status_text = "warning", updated
         message = "No stock data is available right now."
@@ -200,6 +203,45 @@ def run(
         indices=indices,
         generated_at=now,
     )
+
+
+def _should_research(
+    settings: Settings,
+    cached: CachedStory | None,
+    series: PriceSeries,
+    now: datetime,
+    *,
+    force: bool,
+) -> bool:
+    stale = force or cached is None or not cached.is_fresh(settings, series, now)
+    waiting = settings.schedule == "close" and series.is_market_open(now) and not force
+    return stale and not waiting
+
+
+def _story_for(
+    settings: Settings, cached: CachedStory | None, series: PriceSeries, now: datetime
+) -> dict[str, Any]:
+    if cached is not None and cached.is_fresh(settings, series, now):
+        story = cached.story
+    elif settings.schedule == "close" and series.is_market_open(now):
+        story = _pending_story(series)
+    elif cached is not None:
+        story = cached.story
+    else:
+        return {}
+    return story_to_dict(story, series, max_points=STORY_CHART_POINTS)
+
+
+def _pending_story(series: PriceSeries) -> Story:
+    pct = series.change_pct
+    if pct is None:
+        headline = f"{series.name} is trading today"
+        sentiment = "neutral"
+    else:
+        direction = "up" if pct >= 0 else "down"
+        headline = f"{series.name} is {direction} {abs(pct):.1f}% so far today"
+        sentiment = "positive" if pct > 0 else "negative" if pct < 0 else "neutral"
+    return Story(series.symbol, series.name, headline, PENDING_SUMMARY, sentiment, "", "")
 
 
 def _research_all(

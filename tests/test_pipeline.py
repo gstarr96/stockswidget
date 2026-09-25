@@ -16,7 +16,9 @@ SESSION_START = datetime(2026, 9, 24, 13, 30, tzinfo=timezone.utc)
 SESSION_END = SESSION_START + timedelta(hours=6, minutes=30)
 DURING = SESSION_START + timedelta(hours=1)
 AFTER = SESSION_END + timedelta(hours=1)
-SETTINGS = Settings(openai_api_key="sk", story_count=3, summary_refresh_minutes=60)
+SETTINGS = Settings(
+    openai_api_key="sk", story_count=3, summary_refresh_minutes=60, schedule="interval"
+)
 
 
 class FakeMarket:
@@ -95,6 +97,21 @@ def test_watchlist_replaces_movers(paths):
     payload = run(paths, settings=settings)
 
     assert tickers(payload) == ["AAPL", "MSFT"]
+
+
+def test_close_schedule_waits_until_the_market_closes(paths):
+    ai = FakeAI()
+    settings = Settings(openai_api_key="sk", story_count=3, schedule="close")
+
+    during = run(paths, ai=ai, settings=settings, now=DURING)
+    assert ai.researched == []
+    assert "after the US market closes" in during["stories"][0]["summary"]
+
+    after = run(paths, ai=ai, settings=settings, now=AFTER)
+    run(paths, ai=ai, settings=settings, now=AFTER + timedelta(hours=2))
+
+    assert len(ai.researched) == 3
+    assert after["stories"][0]["summary"] != during["stories"][0]["summary"]
 
 
 def test_cache_is_time_limited_while_market_is_open(paths):

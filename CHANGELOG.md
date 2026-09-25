@@ -15,7 +15,7 @@ All notable changes to this project are documented here. The format follows
 - Python backend (standard library only). It picks the day's biggest movers (or a
   watchlist) and fetches prices from Yahoo Finance. It then has OpenAI or Anthropic
   explain each move using their built-in web search tools.
-- Per-stock research cache: each stock is researched once per session after the
-  close, and at most every `summary_refresh_minutes` while the market is open.
+- Per-stock research cache. The default researches each stock once, after the US
+  market closes. Set `schedule = interval` to research during the session.
 - Settings stored in `%APPDATA%\AIStockNewsWidget\config.ini`, outside the skin folder.
 - Test suite, lint configuration, CI, and `.rmskin` packaging script.

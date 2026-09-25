@@ -59,6 +59,7 @@ def test_blank_key_falls_back_to_environment(paths):
         "[stocks]\ncount = 50\n",
         "[stocks]\nwatchlist = AAPL, not a ticker\n",
         "[charts]\ninterval = 1h\n",
+        "[ai]\nschedule = hourly\n",
     ],
 )
 def test_invalid_values_raise_config_error(paths, text):

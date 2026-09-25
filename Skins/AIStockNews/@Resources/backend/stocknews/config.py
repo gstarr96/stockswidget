@@ -78,6 +78,7 @@ class Settings:
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-haiku-4-5"
     story_count: int = 5
+    schedule: str = "close"
     summary_refresh_minutes: int = 120
     watchlist: tuple[str, ...] = ()
     chart_interval: str = "5m"
@@ -144,12 +145,20 @@ def load_settings(paths: Paths, environ: Mapping[str, str] | None = None) -> Set
         anthropic_api_key=text("ai", "anthropic_api_key", env="ANTHROPIC_API_KEY"),
         anthropic_model=text("ai", "anthropic_model", defaults.anthropic_model),
         story_count=_integer(parser, "stocks", "count", defaults.story_count, 1, 10),
+        schedule=_schedule(text("ai", "schedule", defaults.schedule)),
         summary_refresh_minutes=_integer(
             parser, "ai", "summary_refresh_minutes", defaults.summary_refresh_minutes, 5, 1440
         ),
         watchlist=_watchlist(text("stocks", "watchlist")),
         chart_interval=interval,
     )
+
+
+def _schedule(raw: str) -> str:
+    schedule = raw.lower()
+    if schedule not in ("close", "interval"):
+        raise ConfigError("[ai] schedule in config.ini must be 'close' or 'interval'.")
+    return schedule
 
 
 def _watchlist(raw: str) -> tuple[str, ...]:
