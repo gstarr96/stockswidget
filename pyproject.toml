@@ -1,0 +1,18 @@
+# Tooling configuration. The backend itself uses only the Python standard library,
+# so end users never need to pip install anything.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["Skins/AIStockNews/@Resources/backend", "tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["Skins/AIStockNews/@Resources/backend", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["stocknews", "conftest"]

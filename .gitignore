@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Widget runtime output (regenerated on every refresh)
+Skins/AIStockNews/@Resources/data/
+
+# Real settings and API keys must never be committed
+config.ini
+.env
+
+# Build output
+dist/
+*.rmskin
+
+# Editors and OS files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

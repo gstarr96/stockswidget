@@ -1,0 +1,11 @@
+* text=auto
+
+# Rainmeter and Notepad users expect Windows line endings.
+*.ini text eol=crlf
+*.inc text eol=crlf
+*.lua text eol=crlf
+*.ps1 text eol=crlf
+
+*.rmskin binary
+*.png binary
+*.jpg binary

@@ -1,0 +1,17 @@
+{
+  "finance": {
+    "result": [
+      {
+        "id": "day_gainers",
+        "quotes": [
+          { "symbol": "TWST", "quoteType": "EQUITY", "regularMarketChangePercent": 16.1 },
+          { "symbol": "GRAL", "quoteType": "EQUITY", "regularMarketChangePercent": 15.4 },
+          { "symbol": "SPYX", "quoteType": "ETF", "regularMarketChangePercent": 14.0 },
+          { "symbol": "BRK.B", "quoteType": "EQUITY", "regularMarketChangePercent": 12.0 },
+          { "symbol": "TWST", "quoteType": "EQUITY", "regularMarketChangePercent": 16.1 }
+        ]
+      }
+    ],
+    "error": null
+  }
+}

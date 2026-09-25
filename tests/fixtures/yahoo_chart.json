@@ -1,0 +1,25 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "USD",
+          "symbol": "AAPL",
+          "shortName": "Apple Inc.",
+          "regularMarketPrice": 230.5,
+          "regularMarketTime": 1790280001,
+          "chartPreviousClose": 228.0,
+          "gmtoffset": -14400,
+          "currentTradingPeriod": {
+            "regular": { "timezone": "EDT", "start": 1790256600, "end": 1790280000 }
+          }
+        },
+        "timestamp": [1790256600, 1790256900, 1790257200, 1790257500, 1790257800],
+        "indicators": {
+          "quote": [{ "close": [228.5, 229.0, null, 230.0, 230.5] }]
+        }
+      }
+    ],
+    "error": null
+  }
+}

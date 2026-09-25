@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m pytest
+
+  lua:
+    name: Lua syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1.5"
+      - run: luac -p Skins/AIStockNews/@Resources/Scripts/*.lua
+
+  package:
+    name: Build .rmskin
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./tools/build-rmskin.ps1
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rmskin
+          path: dist/*.rmskin
