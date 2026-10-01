@@ -77,6 +77,7 @@ def series_to_dict(
             "priceText": "--",
             "changeText": "",
             "changePctText": "",
+            "changePointsText": "",
             "direction": "flat",
             "points": [],
             "baseline": None,
@@ -84,11 +85,12 @@ def series_to_dict(
 
     change, change_pct = series.change, series.change_pct
     if change is None or change_pct is None:
-        direction, change_text, change_pct_text = "flat", "", ""
+        direction, change_text, change_pct_text, change_points_text = "flat", "", "", ""
     else:
         direction = "up" if change > 0 else "down" if change < 0 else "flat"
         change_pct_text = f"{change_pct:+.2f}%"
-        change_text = f"{change:+,.2f} ({change_pct_text})"
+        change_points_text = f"{change:+,.2f}"
+        change_text = f"{change_points_text} ({change_pct_text})"
 
     points, baseline = normalize(
         series.closes, max_points=max_points, baseline=series.previous_close
@@ -101,6 +103,7 @@ def series_to_dict(
         "priceText": f"{series.price:,.2f}",
         "changeText": change_text,
         "changePctText": change_pct_text,
+        "changePointsText": change_points_text,
         "direction": direction,
         "points": points,
         "baseline": baseline,

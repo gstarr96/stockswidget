@@ -11,6 +11,8 @@ Python=py
 RefreshMinutes=15
 ; Seconds each story stays on screen. Hovering the widget pauses the carousel.
 SlideSeconds=12
+; Seconds between Watchlist price refreshes (Yahoo Finance only, no AI usage).
+WatchRefreshSeconds=60
 
 ; ----- Colors (R,G,B or R,G,B,Alpha) -----
 ColorBackground=17,19,26,235
@@ -38,3 +40,9 @@ IndexChartW=182
 IndexChartH=28
 CardH=78
 CardGap=8
+
+; ----- Watchlist layout (pixels) -----
+WatchColumns=3
+WatchTileW=150
+WatchTileH=76
+WatchGap=8

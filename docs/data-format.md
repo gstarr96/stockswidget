@@ -42,9 +42,27 @@ update `Widget.lua` in the same pull request.
   "priceText": "5,712.34",
   "changeText": "+21.50 (+0.38%)",
   "changePctText": "+0.38%",
+  "changePointsText": "+21.50",
   "direction": "up",                   // "up" | "down" | "flat"
   "points": [0.0, 0.12, 0.5, 1.0],     // intraday closes scaled to 0..1 (1 = day's high)
   "baseline": 0.31                     // previous close on the same scale, or null if off-chart
+}
+```
+
+## `watchlist.json`
+
+The Watchlist skin reads `data/watchlist.json`, written by `run.py --tracker` and read
+by `Scripts/Watchlist.lua`. It holds one Series per ticker in `[tracker] tickers`, in
+the same order. The AI is never involved.
+
+```jsonc
+{
+  "schemaVersion": 1,
+  "status": "ok",                      // "ok" | "warning" | "error"
+  "statusText": "Updated 3:05 PM",
+  "message": "",                       // e.g. "Yahoo Finance has no stock called ZZZZ."
+  "generatedAt": "2026-09-24T22:05:00+00:00",
+  "tiles": [ /* Series, up to 12 */ ]
 }
 ```
 
@@ -53,6 +71,6 @@ update `Widget.lua` in the same pull request.
 | Status    | Meaning                                                                   |
 | --------- | ------------------------------------------------------------------------- |
 | `ok`      | Everything refreshed.                                                     |
-| `warning` | Partial data: some stocks couldn't be researched, so older explanations are shown. |
+| `warning` | Partial data: some stocks couldn't be researched, so older explanations are shown. In the watchlist: a ticker couldn't be added, or has no price data right now. |
 | `error`   | The refresh failed. The previous stories and indices are kept on screen.  |
 | `setup`   | The AI key is missing. Indices still load because they need no key.       |

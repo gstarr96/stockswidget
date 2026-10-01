@@ -3,7 +3,8 @@
 A desktop widget for [Rainmeter](https://www.rainmeter.net/) that finds the day's
 biggest stock moves, has an AI search the web to explain **why** each stock moved,
 and rotates through the explanations with a live intraday chart for each company. A
-sidebar shows the S&P 500, Dow Jones and Nasdaq.
+sidebar shows the S&P 500, Dow Jones and Nasdaq. A second, optional **Watchlist**
+skin tracks your own tickers in a grid of live tiles.
 
 Bring your own AI key: **OpenAI** and **Anthropic** are both supported. It's the
 only key you need.
@@ -16,7 +17,12 @@ only key you need.
   gainers and losers. You can list your own tickers instead.
 - **Chart for every story.** Each story shows the company's intraday price, the
   day's change, and a sparkline with the previous close marked.
-- **Market sidebar.** S&P 500, Dow Jones and Nasdaq cards with live change and charts.
+- **Market sidebar.** S&P 500, Dow Jones and Nasdaq cards with the % and point change,
+  plus charts.
+- **Watchlist grid.** A separate skin with a tile for each of your tickers (up to 12):
+  symbol, price, % change and point change over an intraday chart. It starts with
+  AAPL, NFLX, PLTR, SPCX (SpaceX) and NVDA. Click **+** to add stocks and the **x** on a
+  tile to remove one. Prices refresh every minute and never use your AI key.
 - **Your choice of AI.** Switch between OpenAI and Anthropic, and pick any model, in
   one settings file.
 - **Controlled costs.** Each stock is researched once per trading session after
@@ -50,6 +56,8 @@ Stock lists, prices and charts come from Yahoo Finance's public endpoints and ne
 2. Download the latest `AIStockNews_x.y.z.rmskin` from the
    [Releases](../../releases) page and double-click it.
 3. The widget loads showing **Setup required**. Continue to [Configuration](#configuration).
+4. Optional: to add the watchlist, open the Rainmeter manager and load
+   `AIStockNews\Watchlist\Watchlist.ini`. It needs no API key.
 
 ### Option 2: from source
 
@@ -60,7 +68,7 @@ cd stockswidget
 ```
 
 `install-dev.ps1` links the repo's `Skins\AIStockNews` folder into your Rainmeter
-Skins folder and loads the widget.
+Skins folder and loads the news widget and the watchlist.
 
 ## Configuration
 
@@ -80,6 +88,9 @@ anthropic_api_key =
 anthropic_model = claude-haiku-4-5
 summary_refresh_minutes = 120
 schedule = close
+
+[tracker]
+tickers = AAPL, NFLX, PLTR, SPCX, NVDA   ; the Watchlist skin's tiles
 ```
 
 Save the file, then right-click the widget and choose **Refresh now**.
@@ -94,6 +105,7 @@ Save the file, then right-click the widget and choose **Refresh now**.
 | `[ai] schedule`                | `close`            | `close` researches once after the US market closes. `interval` re-researches during the session. |
 | `[ai] summary_refresh_minutes` | `120`              | Minutes between research runs while the market is open. Used only when `schedule` is `interval`. |
 | `[charts] interval`            | `5m`               | Chart resolution: `1m`, `2m`, `5m`, `15m` or `30m`.              |
+| `[tracker] tickers`            | `AAPL, NFLX, PLTR, SPCX, NVDA` | Watchlist tiles, up to 12. The widget's **+** and **x** buttons edit this line for you. |
 
 A blank key falls back to the `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` environment
 variable.
@@ -103,8 +115,9 @@ variable.
 Right-click the widget and choose **Edit appearance** to open
 `@Resources\Variables.inc`. There you can change colors, fonts, sizes, how often the
 widget refreshes (`RefreshMinutes`), how long each story stays on screen
-(`SlideSeconds`), and which Python command to run (`Python`). Refresh the skin after
-saving.
+(`SlideSeconds`), and which Python command to run (`Python`). The watchlist's
+refresh rate (`WatchRefreshSeconds`), column count (`WatchColumns`) and tile size
+(`WatchTileW`, `WatchTileH`) are in the same file. Refresh the skin after saving.
 
 ## How it works
 
@@ -132,6 +145,11 @@ flowchart LR
    in [docs/data-format.md](docs/data-format.md). When the backend exits,
    `Widget.lua` reloads the file, draws the charts as Rainmeter Shape paths, and
    rotates the carousel.
+
+The Watchlist skin runs `run.py --tracker` every minute. That mode only fetches
+prices for `[tracker] tickers` and writes `data/watchlist.json`. The **+** and **x**
+buttons run it with `--add` or `--remove`, which checks the ticker with Yahoo
+Finance and saves the list back to `config.ini`.
 
 ## Privacy and costs
 
@@ -161,6 +179,7 @@ Run the backend by hand to see everything it does:
 ```powershell
 cd "$env:USERPROFILE\Documents\Rainmeter\Skins\AIStockNews\@Resources\backend"
 py run.py --verbose --print
+py run.py --tracker --print     # the watchlist
 ```
 
 ## Development
@@ -170,12 +189,15 @@ py run.py --verbose --print
 ```text
 stockswidget/
 ├── Skins/AIStockNews/            # Everything that ships in the .rmskin
-│   ├── AIStockNews.ini           # Skin layout, meters and measures
+│   ├── AIStockNews.ini           # News widget layout, meters and measures
+│   ├── Watchlist/Watchlist.ini   # Watchlist skin (generated, see tools/)
 │   └── @Resources/
 │       ├── Variables.inc         # User-editable appearance and behavior
 │       ├── config.example.ini    # Template copied to %APPDATA% on first run
 │       ├── Scripts/
-│       │   ├── Widget.lua        # Carousel, rendering and chart drawing
+│       │   ├── Widget.lua        # News carousel and index cards
+│       │   ├── Watchlist.lua     # Watchlist grid, add and remove
+│       │   ├── chart.lua         # Intraday chart drawing shared by both skins
 │       │   └── json.lua          # Minimal JSON decoder
 │       └── backend/
 │           ├── run.py            # Entry point called by the skin
@@ -183,6 +205,7 @@ stockswidget/
 │               ├── cli.py        # Argument parsing, logging, error reporting
 │               ├── config.py     # Paths and settings
 │               ├── pipeline.py   # Orchestrates one refresh, plus the research cache
+│               ├── tracker.py    # Watchlist prices and ticker add/remove
 │               ├── market.py     # Yahoo Finance movers, prices and charts
 │               ├── research.py   # "Why did it move?" prompt and answer validation
 │               ├── output.py     # widget.json construction and atomic writes
@@ -192,6 +215,7 @@ stockswidget/
 ├── tests/                        # pytest suite (no network access)
 ├── tools/
 │   ├── install-dev.ps1           # Link the skin into Rainmeter for development
+│   ├── generate_watchlist_skin.py # Writes Watchlist.ini (one meter block per tile)
 │   └── build-rmskin.ps1          # Build dist/AIStockNews_<version>.rmskin
 ├── docs/                         # Data format and images
 └── .github/workflows/            # CI (lint, tests, Lua syntax, packaging) and releases

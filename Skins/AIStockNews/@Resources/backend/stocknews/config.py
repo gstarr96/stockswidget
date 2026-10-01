@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import configparser
 import os
+import re
 import shutil
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,6 +21,9 @@ from .market import normalize_ticker
 APP_DIR_NAME = "AIStockNewsWidget"
 PROVIDER_LABELS = {"openai": "OpenAI", "anthropic": "Anthropic"}
 CHART_INTERVALS = ("1m", "2m", "5m", "15m", "30m")
+DEFAULT_TRACKER_TICKERS = ("AAPL", "NFLX", "PLTR", "SPCX", "NVDA")
+# The Watchlist skin has a fixed number of tiles; keep in sync with WatchMaxTiles.
+MAX_TRACKER_TICKERS = 12
 
 
 def default_config_dir(environ: Mapping[str, str] | None = None) -> Path:
@@ -69,6 +73,14 @@ class Paths:
     def log_file(self) -> Path:
         return self.data_dir / "stocknews.log"
 
+    @property
+    def tracker_file(self) -> Path:
+        return self.data_dir / "watchlist.json"
+
+    @property
+    def tracker_log_file(self) -> Path:
+        return self.data_dir / "watchlist.log"
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -82,6 +94,7 @@ class Settings:
     summary_refresh_minutes: int = 120
     watchlist: tuple[str, ...] = ()
     chart_interval: str = "5m"
+    tracker_tickers: tuple[str, ...] = DEFAULT_TRACKER_TICKERS
 
     @property
     def provider_label(self) -> str:
@@ -149,9 +162,44 @@ def load_settings(paths: Paths, environ: Mapping[str, str] | None = None) -> Set
         summary_refresh_minutes=_integer(
             parser, "ai", "summary_refresh_minutes", defaults.summary_refresh_minutes, 5, 1440
         ),
-        watchlist=_watchlist(text("stocks", "watchlist")),
+        watchlist=_ticker_list(text("stocks", "watchlist"), "[stocks] watchlist"),
         chart_interval=interval,
+        tracker_tickers=_tracker_tickers(parser),
     )
+
+
+def save_tracker_tickers(paths: Paths, tickers: Iterable[str]) -> None:
+    """Rewrite only the [tracker] tickers line so the user's comments and keys survive."""
+    ensure_config_file(paths)
+    raw = paths.config_file.read_bytes()
+    newline = "\r\n" if b"\r\n" in raw else "\n"
+    text = raw.decode("utf-8-sig").replace("\r\n", "\n")
+    line = "tickers = " + ", ".join(tickers)
+
+    section = re.search(r"(?ms)^\[tracker\][^\n]*\n?(.*?)(?=^\[|\Z)", text)
+    if section is None:
+        text = text.rstrip("\n") + f"\n\n[tracker]\n{line}\n"
+    else:
+        body = section.group(1)
+        key = re.compile(r"(?im)^[ \t]*tickers[ \t]*[=:].*$")
+        body = key.sub(lambda _: line, body, count=1) if key.search(body) else f"{line}\n{body}"
+        text = text[: section.start(1)] + body + text[section.end(1) :]
+
+    temp = paths.config_file.with_name(paths.config_file.name + ".tmp")
+    with open(temp, "w", encoding="utf-8", newline=newline) as handle:
+        handle.write(text)
+    os.replace(temp, paths.config_file)
+
+
+def _tracker_tickers(parser: configparser.ConfigParser) -> tuple[str, ...]:
+    if not parser.has_option("tracker", "tickers"):
+        return DEFAULT_TRACKER_TICKERS
+    tickers = _ticker_list(parser.get("tracker", "tickers"), "[tracker] tickers")
+    if len(tickers) > MAX_TRACKER_TICKERS:
+        raise ConfigError(
+            f"[tracker] tickers in config.ini can list at most {MAX_TRACKER_TICKERS} stocks."
+        )
+    return tickers
 
 
 def _schedule(raw: str) -> str:
@@ -161,14 +209,14 @@ def _schedule(raw: str) -> str:
     return schedule
 
 
-def _watchlist(raw: str) -> tuple[str, ...]:
+def _ticker_list(raw: str, setting: str) -> tuple[str, ...]:
     symbols: list[str] = []
     for entry in raw.replace(";", ",").split(","):
         if not entry.strip():
             continue
         symbol = normalize_ticker(entry)
         if not symbol:
-            raise ConfigError(f"'{entry.strip()}' in [stocks] watchlist is not a valid ticker.")
+            raise ConfigError(f"'{entry.strip()}' in {setting} is not a valid ticker.")
         if symbol not in symbols:
             symbols.append(symbol)
     return tuple(symbols)

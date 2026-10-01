@@ -31,6 +31,7 @@ def test_series_to_dict_formats_prices_and_direction():
     assert data["priceText"] == "1,234.50"
     assert data["changeText"] == "-15.50 (-1.24%)"
     assert data["changePctText"] == "-1.24%"
+    assert data["changePointsText"] == "-15.50"
     assert data["direction"] == "down"
     assert data["points"][0] == 1.0 and data["points"][-1] == 0.0
 

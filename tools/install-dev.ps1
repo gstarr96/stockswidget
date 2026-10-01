@@ -5,7 +5,7 @@
 .DESCRIPTION
     Creates a directory junction so Rainmeter loads the skin straight from this
     repo: edits show up after a skin refresh, with no copying. Then refreshes
-    Rainmeter and loads the widget.
+    Rainmeter and loads the news widget and the watchlist.
 
 .PARAMETER Force
     Replace an existing Skins\AIStockNews folder. A real folder is renamed to a
@@ -57,7 +57,8 @@ if (Test-Path $rainmeter) {
     & $rainmeter '!RefreshApp'
     Start-Sleep -Seconds 2
     & $rainmeter '!ActivateConfig' $SkinName "$SkinName.ini"
-    Write-Host 'Rainmeter refreshed and the widget loaded.'
+    & $rainmeter '!ActivateConfig' "$SkinName\Watchlist" 'Watchlist.ini'
+    Write-Host 'Rainmeter refreshed and the news widget and watchlist loaded.'
 }
 else {
     Write-Warning 'Rainmeter.exe not found. Load the skin manually from the Rainmeter manager.'

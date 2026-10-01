@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Watchlist skin (`AIStockNews\Watchlist`): a grid of tiles for your own tickers, each
+  with live price, % change, point change and an intraday chart in the background.
+  It starts with AAPL, NFLX, PLTR, SPCX (SpaceX) and NVDA. Add stocks with the **+**
+  button and remove them with the **x** on a tile. The list is saved in the `[tracker]`
+  section of `config.ini`. Prices refresh every minute from Yahoo Finance with no AI
+  calls.
+- Index cards in the news widget show the point change under the % change.
+
 ## [0.1.0] - 2026-09-24
 
 ### Added

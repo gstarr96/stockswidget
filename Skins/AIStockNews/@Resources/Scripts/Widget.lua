@@ -1,7 +1,7 @@
 -- AI Stock News: reads data\widget.json (written by the Python backend),
 -- rotates the story carousel and draws the story and index charts.
 
-local json
+local json, chart
 local cfg = {}
 local state = {
     loaded = false,
@@ -17,7 +17,6 @@ local state = {
 -- Keep above the RunCommand Timeout in the skin.
 local BUSY_TIMEOUT = 320
 local PYTHON_HINT = 'Install Python 3.9+ from python.org, or set Python= in Variables.inc.'
-local CHART_PADDING = 3
 local INDEX_COUNT = 3
 local SENTIMENT_DIRECTION = { positive = 'up', negative = 'down' }
 
@@ -33,49 +32,8 @@ local function colorFor(direction)
     return cfg.colors[direction] or cfg.colors.flat
 end
 
-local function fmt(n)
-    return string.format('%.1f', n)
-end
-
-local function drawChart(meter, chart, width, height)
-    local points = type(chart) == 'table' and chart.points or nil
-    local color = colorFor(type(chart) == 'table' and chart.direction or 'flat')
-    local usable = height - 2 * CHART_PADDING
-    local line, area, areaAlpha
-
-    if type(points) == 'table' and #points >= 2 then
-        local coords = {}
-        for i, value in ipairs(points) do
-            local x = (i - 1) / (#points - 1) * width
-            local y = CHART_PADDING + (1 - value) * usable
-            coords[i] = fmt(x) .. ',' .. fmt(y)
-        end
-        line = table.concat(coords, ' | LineTo ')
-        area = line .. ' | LineTo ' .. fmt(width) .. ',' .. fmt(height)
-            .. ' | LineTo 0,' .. fmt(height) .. ' | ClosePath 1'
-        areaAlpha = 80
-    else
-        line = '0,' .. fmt(height / 2) .. ' | LineTo ' .. fmt(width) .. ',' .. fmt(height / 2)
-        area = line
-        areaAlpha = 0
-        color = cfg.colors.flat
-    end
-
-    option(meter, 'LinePath', line)
-    option(meter, 'AreaPath', area)
-    option(meter, 'AreaGradient', '90 | ' .. color .. ',' .. areaAlpha .. ' ; 0.0 | ' .. color .. ',0 ; 1.0')
-    option(meter, 'Shape2', 'Path AreaPath | StrokeWidth 0 | Fill LinearGradient AreaGradient')
-    option(meter, 'Shape3', 'Path LinePath | StrokeWidth 1.5 | Stroke Color ' .. color
-        .. ' | Fill Color 0,0,0,0 | StrokeLineJoin Round')
-
-    local baseline = type(chart) == 'table' and tonumber(chart.baseline) or nil
-    if baseline then
-        local y = fmt(CHART_PADDING + (1 - baseline) * usable)
-        option(meter, 'Shape4', 'Line 0,' .. y .. ',' .. fmt(width) .. ',' .. y
-            .. ' | StrokeWidth 1 | Stroke Color ' .. cfg.colors.flat .. ',120 | StrokeDashes 2,3')
-    else
-        option(meter, 'Shape4', 'Line 0,0,0,0 | StrokeWidth 0 | Stroke Color 0,0,0,0')
-    end
+local function drawChart(meter, series, width, height)
+    chart.draw(SKIN, meter, series, width, height, cfg.colors)
 end
 
 local function readData()
@@ -167,9 +125,12 @@ local function renderIndices(indices)
             option(prefix .. 'Price', 'Text', index.priceText)
             option(prefix .. 'Change', 'Text', index.changePctText)
             option(prefix .. 'Change', 'FontColor', colorFor(index.direction))
+            option(prefix .. 'Points', 'Text', index.changePointsText)
+            option(prefix .. 'Points', 'FontColor', colorFor(index.direction))
         else
             option(prefix .. 'Price', 'Text', '--')
             option(prefix .. 'Change', 'Text', '')
+            option(prefix .. 'Points', 'Text', '')
         end
         drawChart(prefix .. 'Chart', index, cfg.indexW, cfg.indexH)
     end
@@ -179,6 +140,7 @@ end
 function Initialize()
     local resources = SKIN:GetVariable('@')
     json = dofile(resources .. 'Scripts\\json.lua')
+    chart = dofile(resources .. 'Scripts\\chart.lua')
     cfg.dataFile = resources .. 'data\\widget.json'
     cfg.slideSeconds = math.max(3, numberVariable('SlideSeconds', 12))
     cfg.storyW = numberVariable('StoryW', 410)
