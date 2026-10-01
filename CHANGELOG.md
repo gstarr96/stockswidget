@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
 ### Added
 
 - Watchlist skin (`AIStockNews\Watchlist`): a grid of tiles for your own tickers, each
